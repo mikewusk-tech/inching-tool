@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大衍之數 - 易經多維卦象系統</title>
+    <!-- 引入 html2canvas 庫來製作圖片 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #5d4037;
+            --accent-color: #d32f2f;
+            --bg-color: #f4f1ea;
+            --card-bg: #ffffff;
+            --secondary-text: #888;
+        }
+
+        body {
+            font-family: "PingFang TC", "Microsoft JhengHei", serif;
+            background-color: var(--bg-color);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+        }
+
+        /* iPad 專屬引導提示優化 */
+        .ipad-guide {
+            display: none;
+            background: #fff3e0;
+            color: #e65100;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            border: 1px solid #ffcc80;
+            text-align: left;
+            line-height: 1.5;
+        }
+
+        .ipad-guide b { color: #bf360c; }
+        
+        .copy-link-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            background: #e65100;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #capture-area {
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+        }
+
+        h1 { color: var(--primary-color); margin-bottom: 5px; font-size: 1.6rem; }
+        .subtitle { color: var(--secondary-text); font-size: 0.9rem; margin-bottom: 30px; }
+
+        .divination-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .gua-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 110px;
+        }
+
+        .gua-box {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            width: 85px;
+            min-height: 120px;
+            margin-bottom: 10px;
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .gua-label {
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: var(--secondary-text);
+            margin-bottom: 8px;
+        }
+
+        .dynamic-gua-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            min-height: 2.5em;
+            line-height: 1.2;
+        }
+
+        .line {
+            height: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .yang { background: #333; width: 100%; border-radius: 1px; }
+        .yin { width: 42%; background: #333; border-radius: 1px; }
+        .moving { background: var(--accent-color) !important; }
+
+        .controls { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            gap: 12px; 
+            margin-top: 20px;
+        }
+        
+        button {
+            width: 280px;
+            padding: 15px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-main { background: var(--primary-color); color: white; box-shadow: 0 4px 10px rgba(93, 64, 55, 0.3); }
+        .btn-main:active { transform: scale(0.98); }
+        .btn-main:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+        
+        .btn-image { background: #2e7d32; color: white; width: 220px; padding: 12px; font-size: 0.95rem; margin-top: 10px; display: none; }
+        .btn-reset { background: transparent; color: #888; font-size: 0.85rem; border: 1px solid #ddd; width: 100px; padding: 8px; margin-top: 10px; }
+
+        .result-panel {
+            margin-top: 30px;
+            padding: 25px;
+            background: #fdfcf8;
+            border-radius: 15px;
+            border: 1px solid #e0d7c6;
+            text-align: left;
+            display: none;
+        }
+
+        .interpretation-title { 
+            font-weight: bold; 
+            color: var(--primary-color); 
+            margin-bottom: 15px; 
+            display: block; 
+            font-size: 1.2rem; 
+            border-left: 4px solid var(--primary-color);
+            padding-left: 10px;
+        }
+        .advice-item { font-size: 1rem; line-height: 1.7; color: #333; margin-bottom: 12px; }
+        .advice-tag { font-weight: bold; color: var(--primary-color); margin-right: 5px; }
+        .rule-box { background: #efebe9; padding: 12px; border-radius: 8px; font-size: 0.95rem; color: #5d4037; margin-top: 8px; border-left: 3px solid #d32f2f; }
+
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9);
+            z-index: 2000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        /* 備用圖片顯示區（用於 iPad 無法直接下載時） */
+        #backup-img-area {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: #eee;
+            border-radius: 10px;
+        }
+        #backup-img-area img {
+            max-width: 100%;
+            border: 2px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+    <div>正在繪製占卜報告圖片...</div>
+    <div style="font-size: 0.8rem; margin-top: 10px; color: #888;">請稍候片刻</div>
+</div>
+
+<div class="app-container">
+    <!-- iPad 提示區塊 -->
+    <div id="ipad-tip" class="ipad-guide">
+        ⚠️ <b>iPad 權限限制提示</b>：<br>
+        如果您無法透過「分享」選單開啟 Safari，請嘗試：<br>
+        1. 長按下方按鈕複製網址，手動貼到 Safari。<br>
+        2. 若無法下載圖片，程式將在下方產生預覽圖，您可以<b>「長按圖片」</b>選擇儲存到相簿。<br>
+        <div class="copy-link-btn" onclick="copyUrl()">複製本頁網址</div>
+    </div>
+
+    <div id="capture-area">
+        <h1>大衍之數多維占卜報告</h1>
+        <p class="subtitle">依據朱熹《易學啟蒙》規則判定</p>
+
+        <div class="divination-area">
+            <div class="gua-group">
+                <div class="gua-label">【本卦】</div>
+                <div id="ben-gua" class="gua-box"></div>
+                <div id="ben-name" class="dynamic-gua-name"></div>
+            </div>
+            <div class="gua-group">
+                <div class="gua-label">【之卦】</div>
+                <div id="zhi-gua" class="gua-box"></div>
+                <div id="zhi-name" class="dynamic-gua-name"></div>
+            </div>
+            <div class="gua-group secondary-gua" id="group-cuo" style="opacity: 0.2;">
+                <div class="gua-label">【錯卦】</div>
+                <div id="cuo-gua" class="gua-box"></div>
+                <div id="cuo-name" class="dynamic-gua-name"></div>
+            </div>
+            <div class="gua-group secondary-gua" id="group-zong" style="opacity: 0.2;">
+                <div class="gua-label">【綜卦】</div>
+                <div id="zong-gua" class="gua-box"></div>
+                <div id="zong-name" class="dynamic-gua-name"></div>
+            </div>
+            <div class="gua-group secondary-gua" id="group-hu" style="opacity: 0.2;">
+                <div class="gua-label">【互卦】</div>
+                <div id="hu-gua" class="gua-box"></div>
+                <div id="hu-name" class="dynamic-gua-name"></div>
+            </div>
+        </div>
+
+        <div id="result-panel" class="result-panel">
+            <span class="interpretation-title">綜合解析報告</span>
+            <div id="gua-tips"></div>
+        </div>
+    </div>
+
+    <div id="backup-img-area">
+        <p style="font-size: 0.8rem; color: #666;">↓ 請長按下方圖片儲存至相簿 ↓</p>
+        <img id="final-image-preview" alt="卦象報告預覽">
+    </div>
+
+    <div id="status-text" style="color: var(--primary-color); font-weight: bold; margin-bottom: 15px;">靜心合掌，誠心所請...</div>
+
+    <div class="controls">
+        <button class="btn-main" id="action-btn" onclick="handleAction()">演算第一爻</button>
+        <button class="btn-image" id="save-btn" onclick="saveAsImage()">保存占卜報告圖片</button>
+        <button class="btn-reset" onclick="reset()">重新起卦</button>
+    </div>
+</div>
+
+<script>
+    function checkEnvironment() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|mercury/.test(navigator.userAgent);
+        if (isIOS && !isSafari) {
+            document.getElementById('ipad-tip').style.display = 'block';
+        }
+    }
+    window.onload = checkEnvironment;
+
+    function copyUrl() {
+        const url = window.location.href;
+        const tempInput = document.createElement("input");
+        document.body.appendChild(tempInput);
+        tempInput.value = url;
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert("網址已複製！請打開 Safari 並貼上網址。");
+    }
+
+    const GUA_NAMES = {
+        "111111": "乾為天", "000000": "坤為地", "010001": "水雷屯", "100010": "山水蒙",
+        "010111": "水天需", "111010": "天水訟", "000010": "地水師", "010000": "水地比",
+        "110111": "風天小畜", "111011": "天澤履", "000111": "地天泰", "111000": "天地否",
+        "111101": "天火同人", "101111": "火天大有", "000100": "地山謙", "001000": "雷地豫",
+        "011001": "澤雷隨", "100110": "山風蠱", "000011": "地澤臨", "110000": "風地觀",
+        "101001": "火雷噬嗑", "100101": "山火賁", "100000": "山地剝", "000001": "地雷復",
+        "111001": "天雷無妄", "100111": "山天大畜", "100001": "山雷頤", "011011": "澤風大過",
+        "010010": "坎為水", "101101": "離為火", "011110": "澤山咸", "011101": "雷風恆",
+        "111100": "天山遁", "001111": "雷天大壯", "101000": "火地晉", "000101": "地火明夷",
+        "110101": "風火家人", "101011": "火澤睽", "010011": "水山蹇", "001010": "雷水解",
+        "100011": "山澤損", "110001": "風雷益", "011111": "澤天夬", "111110": "天風姤",
+        "011000": "澤地萃", "000110": "地風升", "011010": "澤水困", "010110": "水風井",
+        "011100": "澤火革", "101110": "火風鼎", "001001": "震為雷", "100100": "艮為山",
+        "110100": "風山漸", "001011": "雷澤歸妹", "001101": "雷火豐", "101100": "火山旅",
+        "110110": "巽為風", "011011": "兌為澤", "110010": "風水渙", "010110": "水澤節",
+        "110011": "風澤中孚", "001100": "雷山小過", "010101": "水火既濟", "101010": "火水未濟"
+    };
+
+    let lines = []; 
+
+    function dayuanAlgo() {
+        let sticks = 49; 
+        for (let i = 0; i < 3; i++) {
+            let left = Math.floor(Math.random() * (sticks - 4)) + 2; 
+            let right = sticks - left - 1; 
+            let remL = left % 4 || 4; 
+            let remR = right % 4 || 4;
+            sticks -= (1 + remL + remR);
+        }
+        return sticks / 4;
+    }
+
+    function drawLineInBox(num, boxId, showMoving = false) {
+        const container = document.getElementById(boxId);
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'line';
+        const isYang = (num === 1 || num === 7 || num === 9);
+        const isMoving = (num === 6 || num === 9);
+        if (isYang) {
+            const p = document.createElement('div');
+            p.className = 'yang' + (showMoving && isMoving ? ' moving' : '');
+            lineDiv.appendChild(p);
+        } else {
+            const p1 = document.createElement('div');
+            const p2 = document.createElement('div');
+            p1.className = 'yin' + (showMoving && isMoving ? ' moving' : '');
+            p2.className = 'yin' + (showMoving && isMoving ? ' moving' : '');
+            lineDiv.appendChild(p1);
+            lineDiv.appendChild(p2);
+        }
+        container.appendChild(lineDiv);
+    }
+
+    function handleAction() {
+        if (lines.length >= 6) return;
+        const val = dayuanAlgo();
+        lines.push(val);
+        drawLineInBox(val, 'ben-gua', true);
+        
+        let zhiVal = val;
+        if (val === 6) zhiVal = 7;
+        else if (val === 9) zhiVal = 8;
+        drawLineInBox(zhiVal, 'zhi-gua', false);
+
+        if (lines.length < 6) {
+            const zh = ["二", "三", "四", "五", "六"];
+            document.getElementById('action-btn').innerText = `演算第${zh[lines.length-1]}爻`;
+            document.getElementById('status-text').innerText = `已得 ${lines.length} 爻...`;
+        } else {
+            finish();
+        }
+    }
+
+    function getSimpleCode(arr) {
+        return arr.map(v => (v === 1 || v === 7 || v === 9 ? 1 : 0));
+    }
+
+    function finish() {
+        document.getElementById('action-btn').disabled = true;
+        document.getElementById('action-btn').innerText = "卜卦圓滿";
+        document.getElementById('status-text').innerText = "六爻齊備，多維象現。";
+        document.getElementById('save-btn').style.display = 'block';
+        
+        const benCodeArr = getSimpleCode(lines);
+        const zhiCodeArr = lines.map(v => (v === 6 || v === 7 || v === 1 ? 1 : 0));
+        
+        const cuoCodeArr = benCodeArr.map(v => v === 1 ? 0 : 1);
+        const zongCodeArr = [...benCodeArr].reverse();
+        const huCodeArr = [benCodeArr[1], benCodeArr[2], benCodeArr[3], benCodeArr[2], benCodeArr[3], benCodeArr[4]];
+
+        renderExtraGua(cuoCodeArr, 'cuo');
+        renderExtraGua(zongCodeArr, 'zong');
+        renderExtraGua(huCodeArr, 'hu');
+
+        const benName = GUA_NAMES[benCodeArr.join('')] || "未知卦";
+        const zhiName = GUA_NAMES[zhiCodeArr.join('')] || "未知卦";
+        const cuoName = GUA_NAMES[cuoCodeArr.join('')] || "未知卦";
+        const zongName = GUA_NAMES[zongCodeArr.join('')] || "未知卦";
+        const huName = GUA_NAMES[huCodeArr.join('')] || "未知卦";
+
+        document.getElementById('ben-name').innerText = benName;
+        document.getElementById('zhi-name').innerText = zhiName;
+        document.getElementById('cuo-name').innerText = cuoName;
+        document.getElementById('zong-name').innerText = zongName;
+        document.getElementById('hu-name').innerText = huName;
+
+        document.querySelectorAll('.secondary-gua').forEach(el => el.style.opacity = "1");
+        document.getElementById('result-panel').style.display = 'block';
+        
+        const movingIndices = []; 
+        lines.forEach((v, i) => { if (v === 6 || v === 9) movingIndices.push(i); });
+        const movingCount = movingIndices.length;
+
+        let ruleAdvice = "";
+        switch(movingCount) {
+            case 0: ruleAdvice = "此卦無動爻，請參考 <b>本卦卦辭</b> 作為主要指引。"; break;
+            case 1: ruleAdvice = `出現一個動爻（第 ${movingIndices[0]+1} 爻），請參考 <b>本卦此爻之爻辭</b> 判定吉凶。`; break;
+            case 2: ruleAdvice = `出現兩個動爻，請參考本卦中 <b>位置較上方之動爻爻辭</b>。`; break;
+            case 3: ruleAdvice = `出現三個動爻，事情正處於變動核心，請綜合參考 <b>本卦與之卦之卦辭</b>，並以本卦為主。`; break;
+            case 4: ruleAdvice = `出現四個動爻，變動極大，請參考 <b>之卦中不變之二爻</b>，並以位居下方者為主。`; break;
+            case 5: ruleAdvice = `出現五個動爻，局面幾乎全變，請參考 <b>之卦中唯一不變之爻辭</b>。`; break;
+            case 6: ruleAdvice = `六爻皆動。若為乾、坤兩卦參考「用九」、「用六」；其餘卦請參考 <b>之卦卦辭</b>。`; break;
+        }
+        
+        let html = `
+            <div class="advice-item">● <span class="advice-tag">本卦 [${benName}]：</span>代表詢問事項的「現狀」與基本盤。</div>
+            <div class="advice-item">● <span class="advice-tag">之卦 [${zhiName}]：</span>代表事情發展的「最終趨勢」與可能的結果。</div>
+            <div class="advice-item">● <span class="advice-tag">互卦 [${huName}]：</span>代表事情發展的「中間過程」與內在核心動機。</div>
+            <div class="advice-item">● <span class="advice-tag">錯卦 [${cuoName}]：</span>代表「反面視角」，提醒您隱藏的盲點或對立面的狀況。</div>
+            <div class="advice-item">● <span class="advice-tag">綜卦 [${zongName}]：</span>代表「立場置換」，建議您換個角度或從他人的眼光看這件事。</div>
+            <div class="advice-item">● <span class="advice-tag">變爻參考建議：</span>
+                <div class="rule-box">${ruleAdvice}</div>
+            </div>
+            <div class="advice-item" style="margin-top:20px; font-size: 0.8rem; color: #999; border-top: 1px solid #eee; padding-top: 15px;">占卜時間：${new Date().toLocaleString()}</div>
+        `;
+        document.getElementById('gua-tips').innerHTML = html;
+    }
+
+    function renderExtraGua(codeArr, prefix) {
+        const container = document.getElementById(`${prefix}-gua`);
+        container.innerHTML = '';
+        codeArr.forEach(val => drawLineInBox(val, `${prefix}-gua`, false));
+    }
+
+    function saveAsImage() {
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.display = 'flex';
+        const area = document.getElementById('capture-area');
+        
+        html2canvas(area, { 
+            backgroundColor: "#ffffff", 
+            scale: 2, 
+            useCORS: true,
+            logging: false,
+            allowTaint: true
+        }).then(canvas => {
+            const dataUrl = canvas.toDataURL("image/png");
+            
+            // 下載備案：直接顯示圖片讓用戶長按
+            const backupArea = document.getElementById('backup-img-area');
+            const backupImg = document.getElementById('final-image-preview');
+            backupImg.src = dataUrl;
+            backupArea.style.display = 'block';
+            backupArea.scrollIntoView({ behavior: 'smooth' });
+
+            // 嘗試自動下載
+            try {
+                const link = document.createElement('a');
+                link.download = `易經占卜報告_${new Date().getTime()}.png`;
+                link.href = dataUrl;
+                link.click();
+            } catch (e) {
+                console.log("Auto-download blocked, user can long-press image.");
+            }
+
+            overlay.style.display = 'none';
+        }).catch(err => {
+            overlay.style.display = 'none';
+            alert("圖片生成失敗。建議直接使用 iPad 截圖功能保存報告。");
+        });
+    }
+
+    function reset() {
+        lines = [];
+        const ids = ['ben', 'zhi', 'cuo', 'zong', 'hu'];
+        ids.forEach(id => {
+            document.getElementById(`${id}-gua`).innerHTML = '';
+            document.getElementById(`${id}-name`).innerText = '';
+        });
+        document.querySelectorAll('.secondary-gua').forEach(el => el.style.opacity = "0.2");
+        document.getElementById('result-panel').style.display = 'none';
+        document.getElementById('save-btn').style.display = 'none';
+        document.getElementById('backup-img-area').style.display = 'none';
+        document.getElementById('action-btn').disabled = false;
+        document.getElementById('action-btn').innerText = "演算第一爻";
+        document.getElementById('status-text').innerText = "準備起卦，請誠心靜思...";
+    }
+</script>
+
+</body>
+</html>
