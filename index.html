@@ -296,12 +296,12 @@
     const GUA_NAMES = {
         "111111": "乾為天", "000000": "坤為地", "010001": "水雷屯", "100010": "山水蒙",
         "010111": "水天需", "111010": "天水訟", "000010": "地水師", "010000": "水地比",
-        "110111": "風天小畜", "111011": "天澤履", "000111": "地天泰", "111000": "天地否",
+        "110110": "風天小畜", "111011": "天澤履", "000111": "地天泰", "111000": "天地否",
         "111101": "天火同人", "101111": "火天大有", "000100": "地山謙", "001000": "雷地豫",
         "011001": "澤雷隨", "100110": "山風蠱", "000011": "地澤臨", "110000": "風地觀",
         "101001": "火雷噬嗑", "100101": "山火賁", "100000": "山地剝", "000001": "地雷復",
-        "111001": "天雷無妄", "100111": "山天大畜", "100001": "山雷頤", "011011": "澤風大過",
-        "010010": "坎為水", "101101": "離為火", "011110": "澤山咸", "011101": "雷風恆",
+        "111001": "天雷無妄", "100111": "山天大畜", "100001": "山雷頤", "011110": "澤風大過",
+        "010010": "坎為水", "101101": "離為火", "011110": "澤山咸", "001110": "雷風恆",
         "111100": "天山遁", "001111": "雷天大壯", "101000": "火地晉", "000101": "地火明夷",
         "110101": "風火家人", "101011": "火澤睽", "010011": "水山蹇", "001010": "雷水解",
         "100011": "山澤損", "110001": "風雷益", "011111": "澤天夬", "111110": "天風姤",
@@ -377,22 +377,38 @@
         document.getElementById('status-text').innerText = "六爻齊備，多維象現。";
         document.getElementById('save-btn').style.display = 'block';
         
-        const benCodeArr = getSimpleCode(lines);
-        const zhiCodeArr = lines.map(v => (v === 6 || v === 7 || v === 1 ? 1 : 0));
-        
-        const cuoCodeArr = benCodeArr.map(v => v === 1 ? 0 : 1);
-        const zongCodeArr = [...benCodeArr].reverse();
-        const huCodeArr = [benCodeArr[1], benCodeArr[2], benCodeArr[3], benCodeArr[2], benCodeArr[3], benCodeArr[4]];
+        // --- 1. 本卦資料 [初, 二, 三, 四, 五, 上] ---
+        const rawBen = lines.map(v => (v === 7 || v === 9 ? 1 : 0)); 
 
-        renderExtraGua(cuoCodeArr, 'cuo');
-        renderExtraGua(zongCodeArr, 'zong');
-        renderExtraGua(huCodeArr, 'hu');
+        // --- 2. 之卦邏輯：老陽(9)變陰(0)，老陰(6)變陽(1)，其餘不變 ---
+        const rawZhi = lines.map(v => {
+            if (v === 9) return 0; // 老陽變陰
+            if (v === 6) return 1; // 老陰變陽
+            if (v === 7) return 1; // 少陽不變
+            return 0;              // 少陰不變
+        });
 
-        const benName = GUA_NAMES[benCodeArr.join('')] || "未知卦";
-        const zhiName = GUA_NAMES[zhiCodeArr.join('')] || "未知卦";
-        const cuoName = GUA_NAMES[cuoCodeArr.join('')] || "未知卦";
-        const zongName = GUA_NAMES[zongCodeArr.join('')] || "未知卦";
-        const huName = GUA_NAMES[huCodeArr.join('')] || "未知卦";
+        // --- 3. 生成其餘多維卦象 ---
+        const rawCuo = rawBen.map(v => v === 1 ? 0 : 1);
+        const rawZong = [...rawBen].reverse();
+        const rawHu = [rawBen[1], rawBen[2], rawBen[3], rawBen[2], rawBen[3], rawBen[4]];
+
+        // --- 4. 繪圖 (保持 raw 資料傳入，CSS 會處理 column-reverse) ---
+        renderExtraGua(rawCuo, 'cuo');
+        renderExtraGua(rawZong, 'zong');
+        renderExtraGua(rawHu, 'hu');
+
+        // --- 5. 核心：定義搜尋函數 (確保與 GUA_NAMES 的 [上...初] 格式完全一致) ---
+        const getGuaName = (arr) => {
+            const code = [...arr].reverse().join(''); // 強制反轉：將 [初...上] 轉為 [上...初]
+            return GUA_NAMES[code] || `未知卦(${code})`;
+        };
+
+        const benName = getGuaName(rawBen);
+        const zhiName = getGuaName(rawZhi);
+        const cuoName = getGuaName(rawCuo);
+        const zongName = getGuaName(rawZong);
+        const huName = getGuaName(rawHu);
 
         document.getElementById('ben-name').innerText = benName;
         document.getElementById('zhi-name').innerText = zhiName;
@@ -403,31 +419,27 @@
         document.querySelectorAll('.secondary-gua').forEach(el => el.style.opacity = "1");
         document.getElementById('result-panel').style.display = 'block';
         
+        // --- 6. 變爻判定 ---
         const movingIndices = []; 
-        lines.forEach((v, i) => { if (v === 6 || v === 9) movingIndices.push(i); });
+        lines.forEach((v, i) => { if (v === 6 || v === 9) movingIndices.push(i + 1); });
         const movingCount = movingIndices.length;
 
         let ruleAdvice = "";
         switch(movingCount) {
-            case 0: ruleAdvice = "此卦無動爻，請參考 <b>本卦卦辭</b> 作為主要指引。"; break;
-            case 1: ruleAdvice = `出現一個動爻（第 ${movingIndices[0]+1} 爻），請參考 <b>本卦此爻之爻辭</b> 判定吉凶。`; break;
-            case 2: ruleAdvice = `出現兩個動爻，請參考本卦中 <b>位置較上方之動爻爻辭</b>。`; break;
-            case 3: ruleAdvice = `出現三個動爻，事情正處於變動核心，請綜合參考 <b>本卦與之卦之卦辭</b>，並以本卦為主。`; break;
-            case 4: ruleAdvice = `出現四個動爻，變動極大，請參考 <b>之卦中不變之二爻</b>，並以位居下方者為主。`; break;
-            case 5: ruleAdvice = `出現五個動爻，局面幾乎全變，請參考 <b>之卦中唯一不變之爻辭</b>。`; break;
-            case 6: ruleAdvice = `六爻皆動。若為乾、坤兩卦參考「用九」、「用六」；其餘卦請參考 <b>之卦卦辭</b>。`; break;
+            case 0: ruleAdvice = "此卦無動爻，請參考 <b>本卦卦辭</b>。"; break;
+            case 1: ruleAdvice = `動爻在第 ${movingIndices[0]} 爻，參考 <b>本卦該爻爻辭</b>。`; break;
+            case 2: ruleAdvice = `兩爻皆動，以位置較上方之動爻（第 ${movingIndices[1]} 爻）為主。`; break;
+            case 3: ruleAdvice = `三爻動，綜合參考 <b>本、之卦卦辭</b>。`; break;
+            case 4: ruleAdvice = `四爻動，參考 <b>之卦</b> 中不變之二爻，以下方者為主。`; break;
+            case 5: ruleAdvice = `五爻動，參考 <b>之卦</b> 中唯一不變之爻。`; break;
+            case 6: ruleAdvice = `六爻皆動，參考 <b>之卦卦辭</b>。`; break;
         }
         
         let html = `
-            <div class="advice-item">● <span class="advice-tag">本卦 [${benName}]：</span>代表詢問事項的「現狀」與基本盤。</div>
-            <div class="advice-item">● <span class="advice-tag">之卦 [${zhiName}]：</span>代表事情發展的「最終趨勢」與可能的結果。</div>
-            <div class="advice-item">● <span class="advice-tag">互卦 [${huName}]：</span>代表事情發展的「中間過程」與內在核心動機。</div>
-            <div class="advice-item">● <span class="advice-tag">錯卦 [${cuoName}]：</span>代表「反面視角」，提醒您隱藏的盲點或對立面的狀況。</div>
-            <div class="advice-item">● <span class="advice-tag">綜卦 [${zongName}]：</span>代表「立場置換」，建議您換個角度或從他人的眼光看這件事。</div>
-            <div class="advice-item">● <span class="advice-tag">變爻參考建議：</span>
-                <div class="rule-box">${ruleAdvice}</div>
-            </div>
-            <div class="advice-item" style="margin-top:20px; font-size: 0.8rem; color: #999; border-top: 1px solid #eee; padding-top: 15px;">占卜時間：${new Date().toLocaleString()}</div>
+            <div class="advice-item">● <span class="advice-tag">本卦 [${benName}]</span> / <span class="advice-tag">之卦 [${zhiName}]</span></div>
+            <div class="advice-item">● <span class="advice-tag">互卦 [${huName}]</span> / <span class="advice-tag">錯卦 [${cuoName}]</span> / <span class="advice-tag">綜卦 [${zongName}]</span></div>
+            <div class="advice-item">● <span class="advice-tag">變爻指引：</span><div class="rule-box">${ruleAdvice}</div></div>
+            <div class="advice-item" style="margin-top:10px; font-size: 0.8rem; color: #999;">占卜時間：${new Date().toLocaleString()}</div>
         `;
         document.getElementById('gua-tips').innerHTML = html;
     }
