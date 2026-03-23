@@ -377,30 +377,32 @@
         document.getElementById('status-text').innerText = "六爻齊備，多維象現。";
         document.getElementById('save-btn').style.display = 'block';
         
-        // --- 1. 本卦資料 [初, 二, 三, 四, 五, 上] ---
+        // --- 1. 基礎資料計算 ---
         const rawBen = lines.map(v => (v === 7 || v === 9 ? 1 : 0)); 
-
-        // --- 2. 之卦邏輯：老陽(9)變陰(0)，老陰(6)變陽(1)，其餘不變 ---
         const rawZhi = lines.map(v => {
-            if (v === 9) return 0; // 老陽變陰
-            if (v === 6) return 1; // 老陰變陽
-            if (v === 7) return 1; // 少陽不變
-            return 0;              // 少陰不變
+            if (v === 9) return 0; 
+            if (v === 6) return 1; 
+            if (v === 7) return 1; 
+            return 0;              
         });
 
-        // --- 3. 生成其餘多維卦象 ---
+        // --- 2. 生成多維卦象資料 ---
         const rawCuo = rawBen.map(v => v === 1 ? 0 : 1);
         const rawZong = [...rawBen].reverse();
         const rawHu = [rawBen[1], rawBen[2], rawBen[3], rawBen[2], rawBen[3], rawBen[4]];
+        
+        // --- 新增：易位卦邏輯 (上下卦互換) ---
+        // 把本卦的 [初,二,三] 跟 [四,五,上] 對調
+        const rawYi = [rawBen[3], rawBen[4], rawBen[5], rawBen[0], rawBen[1], rawBen[2]];
 
-        // --- 4. 繪圖 (保持 raw 資料傳入，CSS 會處理 column-reverse) ---
+        // --- 3. 繪圖 (只畫原本的五個圖) ---
         renderExtraGua(rawCuo, 'cuo');
         renderExtraGua(rawZong, 'zong');
         renderExtraGua(rawHu, 'hu');
 
-        // --- 5. 核心：定義搜尋函數 (確保與 GUA_NAMES 的 [上...初] 格式完全一致) ---
+        // --- 4. 取得所有卦名 ---
         const getGuaName = (arr) => {
-            const code = [...arr].reverse().join(''); // 強制反轉：將 [初...上] 轉為 [上...初]
+            const code = [...arr].reverse().join(''); 
             return GUA_NAMES[code] || `未知卦(${code})`;
         };
 
@@ -409,7 +411,9 @@
         const cuoName = getGuaName(rawCuo);
         const zongName = getGuaName(rawZong);
         const huName = getGuaName(rawHu);
+        const yiName = getGuaName(rawYi); // 取得易位卦名
 
+        // --- 5. 更新介面文字 ---
         document.getElementById('ben-name').innerText = benName;
         document.getElementById('zhi-name').innerText = zhiName;
         document.getElementById('cuo-name').innerText = cuoName;
@@ -419,7 +423,7 @@
         document.querySelectorAll('.secondary-gua').forEach(el => el.style.opacity = "1");
         document.getElementById('result-panel').style.display = 'block';
         
-        // --- 6. 變爻判定 ---
+        // --- 6. 變爻判定邏輯 ---
         const movingIndices = []; 
         lines.forEach((v, i) => { if (v === 6 || v === 9) movingIndices.push(i + 1); });
         const movingCount = movingIndices.length;
@@ -435,11 +439,37 @@
             case 6: ruleAdvice = `六爻皆動，參考 <b>之卦卦辭</b>。`; break;
         }
         
+        // --- 7. 最終報告 HTML 生成 (含易位卦說明) ---
         let html = `
-            <div class="advice-item">● <span class="advice-tag">本卦 [${benName}]</span> / <span class="advice-tag">之卦 [${zhiName}]</span></div>
-            <div class="advice-item">● <span class="advice-tag">互卦 [${huName}]</span> / <span class="advice-tag">錯卦 [${cuoName}]</span> / <span class="advice-tag">綜卦 [${zongName}]</span></div>
-            <div class="advice-item">● <span class="advice-tag">變爻指引：</span><div class="rule-box">${ruleAdvice}</div></div>
-            <div class="advice-item" style="margin-top:10px; font-size: 0.8rem; color: #999;">占卜時間：${new Date().toLocaleString()}</div>
+            <div class="advice-item">
+                <p>● <span class="advice-tag">本卦 [${benName}]：</span>目前的狀態、事情的起點。</p>
+                <p>● <span class="advice-tag">之卦 [${zhiName}]：</span>變動後的狀態、最終的趨勢。</p>
+            </div>
+            
+            <div class="advice-item">
+                <p>● <span class="advice-tag">變爻指引：</span></p>
+                <div class="rule-box">${ruleAdvice}</div>
+            </div>
+
+            <div class="advice-item" style="background: #f9f7f2; padding: 15px; border-radius: 10px; margin-top: 15px;">
+                <p style="margin-top:0;">● <span class="advice-tag">多維視角參考：</span></p>
+                <p style="font-size: 0.9rem; margin-left: 15px; margin-bottom: 5px;">
+                    <b>互卦 [${huName}]：</b>內在動機、隱藏的變數與演進過程。
+                </p>
+                <p style="font-size: 0.9rem; margin-left: 15px; margin-bottom: 5px;">
+                    <b>錯卦 [${cuoName}]：</b>相反的立場、極端的可能性或盲點。
+                </p>
+                <p style="font-size: 0.9rem; margin-left: 15px; margin-bottom: 5px;">
+                    <b>綜卦 [${zongName}]：</b>換位思考，從外部或對手的角度觀察。
+                </p>
+                <p style="font-size: 0.9rem; margin-left: 15px; color: #795548;">
+                    <b>易位 [${yiName}]：</b>內外易位，觀察主客體調換後的局勢變化。
+                </p>
+            </div>
+
+            <div class="advice-item" style="margin-top:20px; font-size: 0.8rem; color: #999; border-top: 1px solid #eee; padding-top: 15px;">
+                占卜時間：${new Date().toLocaleString()}
+            </div>
         `;
         document.getElementById('gua-tips').innerHTML = html;
     }
